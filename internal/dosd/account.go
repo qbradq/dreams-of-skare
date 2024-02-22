@@ -31,7 +31,8 @@ type account struct {
 }
 
 func accountLogin(c client) *account {
-	c.Put("\nAccount Name: ")
+	c.PutLine("")
+	c.PutRaw("Account Name: ")
 	name, ok := c.GetLine()
 	if !ok {
 		return nil
@@ -40,19 +41,19 @@ func accountLogin(c client) *account {
 	a, found := accounts[name]
 	accountsLock.RUnlock()
 	if !found {
-		c.Put("Creating new account \"%s\".\n", name)
-		c.Put("Password: ")
+		c.PutLine("Creating new account \"%s\".", name)
+		c.PutRaw("Password: ")
 		pass1, ok := c.GetLine()
 		if !ok {
 			return nil
 		}
-		c.Put("Confirm Password: ")
+		c.PutRaw("Confirm Password: ")
 		pass2, ok := c.GetLine()
 		if !ok {
 			return nil
 		}
 		if pass1 != pass2 {
-			c.Put("Passwords did not match. Disconnecting.\n")
+			c.PutLine("Passwords did not match. Disconnecting.")
 			return nil
 		}
 		a = &account{
@@ -69,29 +70,29 @@ func accountLogin(c client) *account {
 		}
 		accountsLock.Lock()
 		if len(accounts) < 1 {
-			c.Put("This is the first account created on the server. Granting administration rights.\n")
+			c.PutLine("This is the first account created on the server. Granting administration rights.")
 			a.Access = alAdministrator
 		}
 		accounts[name] = a
 		accountsLock.Unlock()
-		c.Put("Created new account \"%s\". Welcome dreamer!\n", name)
+		c.PutLine("Created new account \"%s\". Welcome dreamer!", name)
 	} else {
-		c.Put("Password: ")
+		c.PutRaw("Password: ")
 		pass, ok := c.GetLine()
 		if !ok {
 			return nil
 		}
 		if a.PasswordHash != util.Hash(pass) {
-			c.Put("Bad password for account \"%s\". Disconnecting.\n", name)
+			c.PutLine("Bad password for account \"%s\". Disconnecting.", name)
 			return nil
 		}
 		if a.Character.Player.Client != nil {
-			c.Put("Someone else was already logged into this account. Disconnecting both.")
+			c.PutLine("Someone else was already logged into this account. Disconnecting both.")
 			c.Stop()
 			a.Character.Player.Client.Stop()
 			return nil
 		}
-		c.Put("Welcome dreamer!\n")
+		c.PutLine("Welcome dreamer!")
 	}
 	a.Character.Player.Client = c
 	return a

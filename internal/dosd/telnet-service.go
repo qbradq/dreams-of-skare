@@ -6,36 +6,52 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gliderlabs/ssh"
 	"github.com/qbradq/dreams-of-skare/internal/util"
-	"golang.org/x/term"
 )
 
-type sshService struct {
+// telnetService implements a client service over telnet.
+type telnetService struct {
+	l       net.Listener
 	once    sync.Once
 	wg      *sync.WaitGroup
 	cwg     *sync.WaitGroup
 	cl      sync.Mutex
 	clients map[string]client
 	closed  bool
-	l       net.Listener
 }
 
-func (s *sshService) Start(wg *sync.WaitGroup) {
+func (s *telnetService) Start(wg *sync.WaitGroup) {
 	s.wg = wg
 	s.cwg = &sync.WaitGroup{}
 	s.clients = map[string]client{}
 	go func() {
-		ssh.Handle(func(ss ssh.Session) {
-			c := &sshClient{
+		fn := func(err error) {
+			if !errors.Is(err, net.ErrClosed) {
+				log.Println("error: telnet service exiting with error", err)
+			}
+			s.Stop()
+			gracefulShutdown()
+		}
+		var err error
+		log.Println("info: telnet service start on 127.0.0.1:23")
+		s.l, err = net.Listen("tcp", "127.0.0.1:23")
+		if err != nil {
+			fn(err)
+		}
+		for {
+			conn, err := s.l.Accept()
+			if err != nil {
+				fn(err)
+				break
+			}
+			c := &telnetClient{
 				uuid: util.NewUUID(),
-				s:    ss,
-				term: term.NewTerminal(ss, ""),
+				conn: conn,
 			}
 			s.cl.Lock()
 			if s.closed {
 				s.cl.Unlock()
-				return
+				break
 			}
 			s.clients[c.uuid] = c
 			s.cl.Unlock()
@@ -48,30 +64,14 @@ func (s *sshService) Start(wg *sync.WaitGroup) {
 			c.Start(s.cwg)
 			handleClient(c)
 			c.Stop()
-		})
-		var err error
-		s.l, err = net.Listen("tcp", "127.0.0.1:22")
-		if err != nil {
-			log.Println("error: ", err)
-			gracefulShutdown()
 		}
-		log.Println("info: ssh service starting on 127.0.0.1:22")
-		if err := ssh.Serve(s.l, nil); err != nil {
-			if !errors.Is(err, net.ErrClosed) {
-				log.Printf("error: ssh service closing with error %v", err)
-			}
-		}
-		log.Println("info: ssh service stopping")
-		s.Stop()
-		gracefulShutdown()
+		log.Println("info: telnet service stopped")
 	}()
 }
 
-func (s *sshService) Stop() {
+func (s *telnetService) Stop() {
 	s.once.Do(func() {
-		if s.l != nil {
-			s.l.Close()
-		}
+		s.l.Close()
 		s.cl.Lock()
 		clients := make([]client, 0, len(s.clients))
 		for _, c := range s.clients {

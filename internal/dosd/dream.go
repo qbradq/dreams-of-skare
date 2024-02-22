@@ -16,7 +16,7 @@ type dreamCommand struct {
 var dreamCommands = make(chan *dreamCommand, 1024*16)
 
 // dreamService is the main game daemon loop.
-func dreamService(wg *sync.WaitGroup) {
+func dreamService(wg *sync.WaitGroup, done chan struct{}) {
 	defer wg.Done()
 	ticker := time.NewTicker(time.Second / 10)
 mainLoop:
@@ -31,6 +31,8 @@ mainLoop:
 				continue
 			}
 			executeCommand(c.Line, c.Account)
+		case <-done:
+			break mainLoop
 		default:
 			time.Sleep(time.Millisecond * 10)
 		}

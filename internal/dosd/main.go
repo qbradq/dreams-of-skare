@@ -6,25 +6,32 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/qbradq/dreams-of-skare/internal/game"
 )
 
-var banner []byte
+var banner []string
 
 var dream *game.Dream
 
 var sshSrv = &sshService{}
 
+var tnSrv = &telnetService{}
+
+var shutdownOnce sync.Once
+
+var dreamDoneChan = make(chan struct{}, 1)
+
 func Main() {
-	var err error
 	// Load global resources
-	banner, err = os.ReadFile(filepath.Join("data", "banner.txt"))
+	bd, err := os.ReadFile(filepath.Join("data", "banner.txt"))
 	if err != nil {
 		log.Fatalf("fatal: %v", err)
 	}
+	banner = strings.Split(string(bd), "\n")
 	// Load accounts
 	d, err := os.ReadFile(filepath.Join("saves", "accounts.json"))
 	if err != nil {
@@ -52,7 +59,9 @@ func Main() {
 	wg.Add(1)
 	sshSrv.Start(wg)
 	wg.Add(1)
-	go dreamService(wg)
+	tnSrv.Start(wg)
+	wg.Add(1)
+	go dreamService(wg, dreamDoneChan)
 	// Trap signals
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -61,19 +70,24 @@ func Main() {
 		gracefulShutdown()
 	}()
 	// Wait for services to quit
-	log.Println("dosd running")
+	log.Println("info: dosd running")
 	wg.Wait()
-	log.Println("dosd exiting normally")
+	log.Println("info: dosd exiting normally")
 }
 
 func gracefulShutdown() {
-	sshSrv.Stop()
-	close(dreamCommands)
+	shutdownOnce.Do(func() {
+		sshSrv.Stop()
+		tnSrv.Stop()
+		close(dreamDoneChan)
+	})
 }
 
 func handleClient(c client) {
 	// Welcome banner
-	c.Put(string(banner))
+	for _, l := range banner {
+		c.PutLine(l)
+	}
 	// Account login
 	a := accountLogin(c)
 	if a == nil {

@@ -13,7 +13,7 @@ func executeCommand(l string, a *account) {
 	}
 	d, found := cFnMap[parts[0]]
 	if !found {
-		a.Character.Player.Client.Put("Unknown command %s.")
+		a.Character.Player.Client.PutLine("Unknown command %s.")
 		return
 	}
 	var cl string
@@ -21,7 +21,7 @@ func executeCommand(l string, a *account) {
 		cl = parts[1]
 	}
 	if a.Access < d.Al {
-		a.Character.Player.Client.Put("You do not have access to command %s.")
+		a.Character.Player.Client.PutLine("You do not have access to command %s.")
 		return
 	}
 	d.Fn(cl, a)
@@ -66,7 +66,7 @@ func init() {
 				if a.Access < d.Al {
 					continue
 				}
-				a.Character.Player.Client.Put("% 17s - %s\n", d.Name, d.Help)
+				a.Character.Player.Client.PutLine("% 17s - %s", d.Name, d.Help)
 			}
 		},
 	)
@@ -76,14 +76,14 @@ func init() {
 		func(s string, a *account) {
 			d, found := cFnMap[s]
 			if !found {
-				a.Character.Player.Client.Put("Command %s not found.", s)
+				a.Character.Player.Client.PutLine("Command %s not found.", s)
 				return
 			}
 			if a.Access < d.Al {
-				a.Character.Player.Client.Put("You do not have access to command %s.", d.Name)
+				a.Character.Player.Client.PutLine("You do not have access to command %s.", d.Name)
 				return
 			}
-			a.Character.Player.Client.Put("%s - %s\n", d.Name, d.Help)
+			a.Character.Player.Client.PutLine("%s - %s", d.Name, d.Help)
 		},
 	)
 	regCmd([]string{"/shutdown"},

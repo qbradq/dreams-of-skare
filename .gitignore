@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Certs and stuff
+*.crt
+*.key
+*.pem
+*.pub

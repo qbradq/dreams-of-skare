@@ -59,7 +59,14 @@ func (c *sshClient) GetLine() (string, bool) {
 	return l, open
 }
 
-func (c *sshClient) Put(s string, args ...any) {
+func (c *sshClient) PutLine(s string, args ...any) {
+	t := fmt.Sprintf(s, args...) + "\n"
+	c.out.Lock()
+	c.term.Write([]byte(t))
+	c.out.Unlock()
+}
+
+func (c *sshClient) PutRaw(s string, args ...any) {
 	t := fmt.Sprintf(s, args...)
 	c.out.Lock()
 	c.term.Write([]byte(t))

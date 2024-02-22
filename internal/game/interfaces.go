@@ -7,6 +7,8 @@ type Client interface {
 	// GetLine returns the next non-blank line of text from the player. The
 	// second return value is false when the connection is closed.
 	GetLine() (string, bool)
-	// Put prints a string to the client.
-	Put(string, ...any)
+	// PutLine prints a line to the client with appropriate line endings.
+	PutLine(string, ...any)
+	// PutRaw prints a string to the client.
+	PutRaw(string, ...any)
 }
