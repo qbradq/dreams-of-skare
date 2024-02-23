@@ -6,6 +6,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.6
 	github.com/google/uuid v1.6.0
 	golang.org/x/term v0.17.0
+	nhooyr.io/websocket v1.8.10
 )
 
 require (

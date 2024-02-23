@@ -61,7 +61,7 @@ func (s *sshService) Start(wg *sync.WaitGroup) {
 				log.Printf("error: ssh service closing with error %v", err)
 			}
 		}
-		log.Println("info: ssh service stopping")
+		log.Println("info: ssh service stopped")
 		s.Stop()
 		gracefulShutdown()
 	}()

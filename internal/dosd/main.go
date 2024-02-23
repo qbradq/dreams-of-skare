@@ -21,6 +21,8 @@ var sshSrv = &sshService{}
 
 var tnSrv = &telnetService{}
 
+var wsSrv = &websocketService{}
+
 var shutdownOnce sync.Once
 
 var dreamDoneChan = make(chan struct{}, 1)
@@ -61,6 +63,8 @@ func Main() {
 	wg.Add(1)
 	tnSrv.Start(wg)
 	wg.Add(1)
+	wsSrv.Start(wg)
+	wg.Add(1)
 	go dreamService(wg, dreamDoneChan)
 	// Trap signals
 	sig := make(chan os.Signal, 1)
@@ -79,6 +83,7 @@ func gracefulShutdown() {
 	shutdownOnce.Do(func() {
 		sshSrv.Stop()
 		tnSrv.Stop()
+		wsSrv.Stop()
 		close(dreamDoneChan)
 	})
 }

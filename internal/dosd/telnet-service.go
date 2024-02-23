@@ -33,7 +33,7 @@ func (s *telnetService) Start(wg *sync.WaitGroup) {
 			gracefulShutdown()
 		}
 		var err error
-		log.Println("info: telnet service start on 127.0.0.1:23")
+		log.Println("info: telnet service starting on 127.0.0.1:23")
 		s.l, err = net.Listen("tcp", "127.0.0.1:23")
 		if err != nil {
 			fn(err)
@@ -48,6 +48,11 @@ func (s *telnetService) Start(wg *sync.WaitGroup) {
 				uuid: util.NewUUID(),
 				conn: conn,
 			}
+			c.DisconnectHook(func() {
+				s.cl.Lock()
+				delete(s.clients, c.uuid)
+				s.cl.Unlock()
+			})
 			s.cl.Lock()
 			if s.closed {
 				s.cl.Unlock()
@@ -55,11 +60,6 @@ func (s *telnetService) Start(wg *sync.WaitGroup) {
 			}
 			s.clients[c.uuid] = c
 			s.cl.Unlock()
-			c.DisconnectHook(func() {
-				s.cl.Lock()
-				delete(s.clients, c.uuid)
-				s.cl.Unlock()
-			})
 			s.cwg.Add(1)
 			c.Start(s.cwg)
 			handleClient(c)

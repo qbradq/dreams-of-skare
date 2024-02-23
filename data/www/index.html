@@ -5,10 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Dreams of Skare Web Terminal</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <style>
+        #input-line {
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
     <div style="text-align: center;"><h1>Dreams of Skare</h1></div>
-    <script src="index.js"></script>
+    <div id="terminal"></div>
+    <input type="text" id="input-line"></input>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script>
+        window.onload = function() {
+            var term = new Terminal();
+            term.open(document.getElementById("terminal"));
+            var socket = new WebSocket("ws://localhost/pty");
+            socket.onopen = function(event) {
+                term.write("Connected to server.\r\n");
+            };
+            socket.onmessage = function(event) {
+                term.write(event.data);
+            };
+            socket.onclose = function(event) {
+                term.write("Connection to server closed.\r\n");
+            };
+            socket.onerror = function(event) {
+                alert("websocket error");
+                console.log(event);
+            };
+            var input = document.getElementById("input-line");
+            input.focus();
+            input.onkeyup = function(event) {
+                if(event.key == "Enter") {
+                    socket.send(input.value);
+                    term.write(input.value + "\r\n");
+                    input.value = "";
+                }
+            };
+        };
+    </script>
 </body>
 </html>
